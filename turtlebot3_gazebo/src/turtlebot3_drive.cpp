@@ -16,13 +16,13 @@
 
 #include "turtlebot3_gazebo/turtlebot3_drive.hpp"
 
-#include <memory>
-
-using namespace std::chrono_literals;
+#include <cmath>
+#include <string>
 
 Turtlebot3Drive::Turtlebot3Drive()
-: Node("turtlebot3_drive_node")
 {
+  ros::NodeHandle nh;
+
   /************************************************************
   ** Initialise variables
   ************************************************************/
@@ -36,39 +36,28 @@ Turtlebot3Drive::Turtlebot3Drive()
   /************************************************************
   ** Initialise ROS publishers and subscribers
   ************************************************************/
-  auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
-  // Initialise publishers
-  cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", qos);
-
-  // Initialise subscribers
-  scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-    "scan", \
-    rclcpp::SensorDataQoS(), \
-    std::bind(
-      &Turtlebot3Drive::scan_callback, \
-      this, \
-      std::placeholders::_1));
-  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "odom", qos, std::bind(&Turtlebot3Drive::odom_callback, this, std::placeholders::_1));
+  scan_sub_ = nh.subscribe("scan", 10, &Turtlebot3Drive::scanCallback, this);
+  odom_sub_ = nh.subscribe("odom", 10, &Turtlebot3Drive::odomCallback, this);
 
   /************************************************************
-  ** Initialise ROS timers
+  ** Initialise ROS timer
   ************************************************************/
-  update_timer_ = this->create_wall_timer(10ms, std::bind(&Turtlebot3Drive::update_callback, this));
+  update_timer_ = nh.createTimer(ros::Duration(0.1), &Turtlebot3Drive::updateCallback, this);
 
-  RCLCPP_INFO(this->get_logger(), "Turtlebot3 simulation node has been initialised");
+  ROS_INFO("Turtlebot3 simulation node has been initialized");
 }
 
 Turtlebot3Drive::~Turtlebot3Drive()
 {
-  RCLCPP_INFO(this->get_logger(), "Turtlebot3 simulation node has been terminated");
+  ROS_INFO("Turtlebot3 simulation node has been terminated");
 }
 
 /********************************************************************************
 ** Callback functions for ROS subscribers
 ********************************************************************************/
-void Turtlebot3Drive::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+void Turtlebot3Drive::odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   tf2::Quaternion q(
     msg->pose.pose.orientation.x,
@@ -82,7 +71,7 @@ void Turtlebot3Drive::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg
   robot_pose_ = yaw;
 }
 
-void Turtlebot3Drive::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+void Turtlebot3Drive::scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
   uint16_t scan_angle[3] = {0, 30, 330};
 
@@ -95,19 +84,19 @@ void Turtlebot3Drive::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr
   }
 }
 
-void Turtlebot3Drive::update_cmd_vel(double linear, double angular)
+void Turtlebot3Drive::updateCmdVel(double linear, double angular)
 {
-  geometry_msgs::msg::Twist cmd_vel;
+  geometry_msgs::Twist cmd_vel;
   cmd_vel.linear.x = linear;
   cmd_vel.angular.z = angular;
 
-  cmd_vel_pub_->publish(cmd_vel);
+  cmd_vel_pub_.publish(cmd_vel);
 }
 
 /********************************************************************************
 ** Update functions
 ********************************************************************************/
-void Turtlebot3Drive::update_callback()
+void Turtlebot3Drive::updateCallback(const ros::TimerEvent& event)
 {
   static uint8_t turtlebot3_state_num = 0;
   double escape_range = 30.0 * DEG2RAD;
@@ -135,7 +124,7 @@ void Turtlebot3Drive::update_callback()
       break;
 
     case TB3_DRIVE_FORWARD:
-      update_cmd_vel(LINEAR_VELOCITY, 0.0);
+      updateCmdVel(LINEAR_VELOCITY, 0.0);
       turtlebot3_state_num = GET_TB3_DIRECTION;
       break;
 
@@ -143,7 +132,7 @@ void Turtlebot3Drive::update_callback()
       if (fabs(prev_robot_pose_ - robot_pose_) >= escape_range) {
         turtlebot3_state_num = GET_TB3_DIRECTION;
       } else {
-        update_cmd_vel(0.0, -1 * ANGULAR_VELOCITY);
+        updateCmdVel(0.0, -1 * ANGULAR_VELOCITY);
       }
       break;
 
@@ -151,7 +140,7 @@ void Turtlebot3Drive::update_callback()
       if (fabs(prev_robot_pose_ - robot_pose_) >= escape_range) {
         turtlebot3_state_num = GET_TB3_DIRECTION;
       } else {
-        update_cmd_vel(0.0, ANGULAR_VELOCITY);
+        updateCmdVel(0.0, ANGULAR_VELOCITY);
       }
       break;
 
@@ -164,11 +153,11 @@ void Turtlebot3Drive::update_callback()
 /*******************************************************************************
 ** Main
 *******************************************************************************/
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<Turtlebot3Drive>());
-  rclcpp::shutdown();
+  ros::init(argc, argv, "turtlebot3_drive_node");
+  Turtlebot3Drive turtlebot3_drive;
+  ros::spin();
 
   return 0;
 }

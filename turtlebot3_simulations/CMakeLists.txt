@@ -1,9 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0.2)
 project(turtlebot3_simulations)
-
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
-
-find_package(ament_cmake REQUIRED)
-ament_package()
+find_package(catkin REQUIRED)
+catkin_metapackage()

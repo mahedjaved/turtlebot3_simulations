@@ -1,7 +1,7 @@
 ################################################################################
 # Set minimum required version of cmake, project name and compile options
 ################################################################################
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0.2)
 project(turtlebot3_fake_node)
 
 if(NOT CMAKE_CXX_STANDARD)
@@ -15,61 +15,48 @@ endif()
 ################################################################################
 # Find and load build settings from external packages
 ################################################################################
-find_package(ament_cmake REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_msgs REQUIRED)
-find_package(turtlebot3_msgs REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  geometry_msgs
+  nav_msgs
+  roscpp
+  sensor_msgs
+  tf2
+  tf2_msgs
+  turtlebot3_msgs
+)
+
+################################################################################
+# Declare catkin package
+################################################################################
+catkin_package(
+  INCLUDE_DIRS include
+  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp sensor_msgs tf2 tf2_msgs turtlebot3_msgs
+)
 
 ################################################################################
 # Build
 ################################################################################
 include_directories(
   include
-)
-
-set(dependencies
-  "geometry_msgs"
-  "nav_msgs"
-  "rclcpp"
-  "sensor_msgs"
-  "tf2"
-  "tf2_msgs"
-  "turtlebot3_msgs"
+  ${catkin_INCLUDE_DIRS}
 )
 
 set(EXEC_NAME "turtlebot3_fake_node")
 
 add_executable(${EXEC_NAME} src/turtlebot3_fake_node.cpp)
-ament_target_dependencies(${EXEC_NAME} ${dependencies})
+target_link_libraries(${EXEC_NAME} ${catkin_LIBRARIES})
 
 ################################################################################
 # Install
 ################################################################################
 install(TARGETS ${EXEC_NAME}
-  DESTINATION lib/${PROJECT_NAME}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(DIRECTORY launch param
-  DESTINATION share/${PROJECT_NAME}
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 install(DIRECTORY include/
-  DESTINATION include/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
-
-################################################################################
-# Macro for ament package
-################################################################################
-ament_export_include_directories(include)
-ament_export_dependencies(geometry_msgs)
-ament_export_dependencies(nav_msgs)
-ament_export_dependencies(rclcpp)
-ament_export_dependencies(sensor_msgs)
-ament_export_dependencies(tf2)
-ament_export_dependencies(tf2_msgs)
-ament_export_dependencies(turtlebot3_msgs)
-ament_package()

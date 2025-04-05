@@ -18,20 +18,18 @@
 #define TURTLEBOT3_FAKE_NODE__TURTLEBOT3_FAKE_NODE_HPP_
 
 #include <tf2/LinearMath/Quaternion.h>
-#include <chrono>
-
-#include <rclcpp/rclcpp.hpp>
-#include "geometry_msgs/msg/transform_stamped.hpp"
-#include "geometry_msgs/msg/twist.hpp"
-#include "nav_msgs/msg/odometry.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
-#include "tf2_msgs/msg/tf_message.hpp"
-#include "turtlebot3_msgs/msg/sensor_state.hpp"
+#include <ros/ros.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/JointState.h>
+#include <tf2_msgs/TFMessage.h>
+#include <turtlebot3_msgs/SensorState.h>
 
 #define LEFT 0
 #define RIGHT 1
 
-class Turtlebot3Fake : public rclcpp::Node
+class Turtlebot3Fake
 {
 public:
   Turtlebot3Fake();
@@ -39,23 +37,22 @@ public:
 
 private:
   // ROS time
-  rclcpp::Time last_cmd_vel_time_;
-  rclcpp::Time prev_update_time_;
+  ros::Time last_cmd_vel_time_;
+  ros::Time prev_update_time_;
 
   // ROS timer
-  rclcpp::TimerBase::SharedPtr update_timer_;
+  ros::Timer update_timer_; // Add this declaration
 
-  // ROS topic publishers
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_states_pub_;
-  rclcpp::Publisher<tf2_msgs::msg::TFMessage>::SharedPtr tf_pub_;
+  // ROS publishers
+  ros::Publisher odom_pub_;
+  ros::Publisher joint_states_pub_;
+  ros::Publisher tf_pub_;
 
-  // ROS topic subscribers
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  // ROS subscribers
+  ros::Subscriber cmd_vel_sub_;
 
-
-  nav_msgs::msg::Odometry odom_;
-  sensor_msgs::msg::JointState joint_states_;
+  nav_msgs::Odometry odom_;
+  sensor_msgs::JointState joint_states_;
 
   double wheel_speed_cmd_[2];
   double goal_linear_velocity_;
@@ -66,16 +63,17 @@ private:
   float odom_pose_[3];
   float odom_vel_[3];
 
-  double wheel_seperation_;
+  double wheel_separation_;
   double wheel_radius_;
 
   // Function prototypes
-  void init_parameters();
-  void init_variables();
-  void command_velocity_callback(const geometry_msgs::msg::Twist::SharedPtr cmd_vel_msg);
-  void update_callback();
-  bool update_odometry(const rclcpp::Duration & diff_time);
-  void update_joint_state();
-  void update_tf(geometry_msgs::msg::TransformStamped & odom_tf);
+  void initParameters();
+  void initVariables();
+  void commandVelocityCallback(const geometry_msgs::Twist::ConstPtr& cmd_vel_msg);
+  void updateCallback(const ros::TimerEvent& event);
+  bool updateOdometry(const ros::Duration& diff_time);
+  void updateJointState();
+  void updateTF(geometry_msgs::TransformStamped& odom_tf);
 };
+
 #endif  // TURTLEBOT3_FAKE_NODE__TURTLEBOT3_FAKE_NODE_HPP_
